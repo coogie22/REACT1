@@ -55,7 +55,7 @@ function ChartComponent() {
     chartRef.current = chartInstance;
 
     // WebSocket 연결
-    const socket = new WebSocket('ws://34.22.71.108:5000'); // Google VM의 외부 IP 사용
+    const socket = new WebSocket('wss://34.22.71.108:5000'); // Google VM의 외부 IP 사용
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
       const { labels, datasets } = chartRef.current.data;
