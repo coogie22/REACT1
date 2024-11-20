@@ -11,7 +11,7 @@ function ChartComponent() {
   useEffect(() => {
     // <canvas>의 2D 컨텍스트 가져오기
     const ctx = canvasRef.current.getContext("2d");
-    
+
     // Chart.js 인스턴스 초기화
     const chartInstance = new Chart(ctx, {
       type: "line",
@@ -58,12 +58,32 @@ function ChartComponent() {
     chartRef.current = chartInstance; // Chart.js 인스턴스를 참조에 저장
 
     // WebSocket 연결
-    const socket = new WebSocket("ws://34.22.71.108:5000");
+    const socket = new WebSocket("wss://34.22.71.108:5000");
+
+    // WebSocket 상태 로그 출력
+    socket.onopen = () => {
+      console.log("WebSocket 연결 성공");
+    };
+
+    socket.onerror = (error) => {
+      console.error("WebSocket 오류:", error);
+    };
+
+    socket.onclose = () => {
+      console.warn("WebSocket 연결 종료");
+    };
 
     // WebSocket 메시지 처리
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data); // JSON 데이터 파싱
+
+        // 데이터 유효성 검사
+        if (!data.temperature || !data.humidity || !data.soilMoisture) {
+          console.warn("유효하지 않은 데이터:", data);
+          return;
+        }
+
         const { labels, datasets } = chartRef.current.data;
 
         // 최신 데이터 업데이트
@@ -103,12 +123,6 @@ function ChartComponent() {
       }
     };
 
-    // WebSocket 에러 처리
-    socket.onerror = (error) => {
-      console.error("WebSocket 오류:", error);
-      alert("서버와의 연결에 문제가 발생했습니다.");
-    };
-
     // 컴포넌트 언마운트 시 WebSocket 및 Chart.js 인스턴스 정리
     return () => {
       socket.close();
@@ -143,25 +157,23 @@ function ChartComponent() {
             marginBottom: "20px",
           }}
         >
-          Node.js에서 받아온 실시간 데이터
+          실시간 데이터
         </h3>
         {latestData ? (
           <>
-            <div style={{ marginBottom: "20px" }}>
-              <p>
-                <strong>온도:</strong> {latestData.temperature}°C
-              </p>
-              <p>
-                <strong>습도:</strong> {latestData.humidity}%
-              </p>
-              <p>
-                <strong>토양 수분:</strong> {latestData.soilMoisture}%
-              </p>
-              <p>
-                <strong>수신 시간:</strong>{" "}
-                {new Date(latestData.timestamp).toLocaleString()}
-              </p>
-            </div>
+            <p>
+              <strong>온도:</strong> {latestData.temperature}°C
+            </p>
+            <p>
+              <strong>습도:</strong> {latestData.humidity}%
+            </p>
+            <p>
+              <strong>토양 수분:</strong> {latestData.soilMoisture}%
+            </p>
+            <p>
+              <strong>수신 시간:</strong>{" "}
+              {new Date(latestData.timestamp).toLocaleString()}
+            </p>
 
             <div
               style={{
