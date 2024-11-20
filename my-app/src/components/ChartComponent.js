@@ -68,7 +68,7 @@ function ChartComponent() {
     chartRef.current = chartInstance;
 
     // WebSocket 설정
-    const socket = new WebSocket("wss://leejaewon.store:5000");
+    const socket = new WebSocket("wss://34.71.124.201:5000"); // 서버 WebSocket 주소
 
     socket.onopen = () => console.log("WebSocket 연결 성공");
     socket.onerror = (error) => console.error("WebSocket 오류:", error);
