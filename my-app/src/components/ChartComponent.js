@@ -1,12 +1,29 @@
 import React, { useEffect, useRef, useState } from "react";
 import Chart from "chart.js/auto";
+import { getDatabase, ref, onValue } from "firebase/database";
+import { initializeApp } from "firebase/app";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB9uKYmvrtZZwYFo6WiWb6j_oO7pyM7-AE",
+  authDomain: "backend1-79e56.firebaseapp.com",
+  databaseURL: "https://backend1-79e56-default-rtdb.firebaseio.com",
+  projectId: "backend1-79e56",
+  storageBucket: "backend1-79e56.appspot.com",
+  messagingSenderId: "327925233289",
+  appId: "1:327925233289:web:fb3b6385f7f7cbcb9bb858",
+  measurementId: "G-482MFGBLJV"
+};
+
+// Firebase 앱 초기화
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
 function ChartComponent() {
-  const chartRef = useRef(null); // Chart.js 인스턴스 참조
-  const canvasRef = useRef(null); // <canvas> 요소 참조
-  const MAX_VISIBLE_POINTS = 20; // 차트에 표시할 최대 데이터 포인트 수
-  const [latestData, setLatestData] = useState(null); // 최신 데이터
-  const [historyData, setHistoryData] = useState([]); // 데이터 히스토리
+  const chartRef = useRef(null);
+  const canvasRef = useRef(null);
+  const MAX_VISIBLE_POINTS = 20;
+  const [latestData, setLatestData] = useState(null);
+  const [historyData, setHistoryData] = useState([]);
 
   useEffect(() => {
     const ctx = canvasRef.current.getContext("2d");
@@ -15,31 +32,16 @@ function ChartComponent() {
     const chartInstance = new Chart(ctx, {
       type: "line",
       data: {
-        labels: [], // X축 레이블
+        labels: [],
         datasets: [
-          {
-            label: "온도 (°C)",
-            data: [],
-            borderColor: "rgba(255, 99, 132, 1)",
-            backgroundColor: "rgba(255, 99, 132, 0.2)",
-            borderWidth: 1,
-            tension: 0.2, // 부드러운 곡선
-          },
           {
             label: "습도 (%)",
             data: [],
             borderColor: "rgba(54, 162, 235, 1)",
             backgroundColor: "rgba(54, 162, 235, 0.2)",
-            borderWidth: 1,
-            tension: 0.2,
-          },
-          {
-            label: "토양 수분 (%)",
-            data: [],
-            borderColor: "rgba(75, 192, 192, 1)",
-            backgroundColor: "rgba(75, 192, 192, 0.2)",
-            borderWidth: 1,
-            tension: 0.2,
+            borderWidth: 2, // 라인 두께 조정
+            pointRadius: 4, // 데이터 포인트 크기 조정
+            tension: 0.4, // 곡선 부드럽게
           },
         ],
       },
@@ -47,8 +49,8 @@ function ChartComponent() {
         responsive: true,
         maintainAspectRatio: false,
         animation: {
-          duration: 300,
-          easing: "linear",
+          duration: 600,
+          easing: "easeInOutCubic", // 부드러운 애니메이션 효과
         },
         scales: {
           x: {
@@ -56,7 +58,8 @@ function ChartComponent() {
           },
           y: {
             beginAtZero: true,
-            title: { display: true, text: "값" },
+            max: 100,
+            title: { display: true, text: "습도 (%)" },
           },
         },
         plugins: {
@@ -67,63 +70,53 @@ function ChartComponent() {
 
     chartRef.current = chartInstance;
 
-    // WebSocket 설정
-    const socket = new WebSocket("wss://34.71.124.201:5000"); // 서버 WebSocket 주소
+    // Firebase 데이터 구독
+    const humidityRef = ref(db, "humidityData");
 
-    socket.onopen = () => console.log("WebSocket 연결 성공");
-    socket.onerror = (error) => console.error("WebSocket 오류:", error);
-    socket.onclose = () => console.warn("WebSocket 연결 종료");
+    onValue(humidityRef, (snapshot) => {
+      const data = snapshot.val();
 
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-
-        // 데이터 유효성 검사
-        if (
-          typeof data.temperature !== "number" ||
-          typeof data.humidity !== "number" ||
-          typeof data.soilMoisture !== "number"
-        ) {
-          console.warn("유효하지 않은 데이터:", data);
-          return;
-        }
-
+      if (data) {
         const { labels, datasets } = chartRef.current.data;
 
-        // 최신 데이터 업데이트
-        setLatestData({
-          temperature: data.temperature,
-          humidity: data.humidity,
-          soilMoisture: data.soilMoisture,
-          timestamp: data.timestamp,
+        // Firebase에서 받은 데이터를 처리
+        Object.values(data).forEach((item) => {
+          const humidity = item.humidity;
+          let timestamp = item.timestamp;
+
+          if (timestamp && typeof timestamp === "string") {
+            timestamp = new Date(timestamp).getTime();
+          } else if (!timestamp || isNaN(timestamp)) {
+            timestamp = Date.now();
+          }
+
+          // 최신 데이터 업데이트
+          setLatestData({
+            humidity: humidity.toFixed(2),
+            timestamp: new Date(timestamp).toLocaleString(),
+          });
+
+          // 데이터 히스토리 추가
+          setHistoryData((prev) => [
+            { humidity, timestamp: new Date(timestamp).toLocaleString() },
+            ...prev.slice(0, 99),
+          ]);
+
+          // 차트 업데이트
+          labels.push(new Date(timestamp).toLocaleTimeString());
+          datasets[0].data.push(humidity);
+
+          if (labels.length > MAX_VISIBLE_POINTS) {
+            labels.shift();
+            datasets[0].data.shift();
+          }
+
+          chartRef.current.update();
         });
-
-        // 데이터 히스토리 추가
-        setHistoryData((prev) => [
-          { ...data, timestamp: data.timestamp },
-          ...prev.slice(0, 99), // 최대 100개의 히스토리 유지
-        ]);
-
-        // 차트 데이터 업데이트
-        labels.push(new Date(data.timestamp).toLocaleTimeString());
-        datasets[0].data.push(data.temperature);
-        datasets[1].data.push(data.humidity);
-        datasets[2].data.push(data.soilMoisture);
-
-        if (labels.length > MAX_VISIBLE_POINTS) {
-          labels.shift();
-          datasets.forEach((dataset) => dataset.data.shift());
-        }
-
-        chartRef.current.update();
-      } catch (error) {
-        console.error("WebSocket 데이터 처리 오류:", error);
       }
-    };
+    });
 
-    // 정리 함수
     return () => {
-      socket.close();
       if (chartRef.current) {
         chartRef.current.destroy();
       }
@@ -147,23 +140,14 @@ function ChartComponent() {
           backgroundColor: "#f9f9f9",
         }}
       >
-        <h3 style={{ textAlign: "center", color: "#00529b" }}>
-          실시간 데이터
-        </h3>
+        <h3 style={{ textAlign: "center", color: "#00529b" }}>실시간 데이터</h3>
         {latestData ? (
           <>
-            <p>
-              <strong>온도:</strong> {latestData.temperature}°C
-            </p>
             <p>
               <strong>습도:</strong> {latestData.humidity}%
             </p>
             <p>
-              <strong>토양 수분:</strong> {latestData.soilMoisture}%
-            </p>
-            <p>
-              <strong>수신 시간:</strong>{" "}
-              {new Date(latestData.timestamp).toLocaleString()}
+              <strong>수신 시간:</strong> {latestData.timestamp}
             </p>
             <hr />
             <h4>데이터 히스토리</h4>
@@ -178,11 +162,8 @@ function ChartComponent() {
               {historyData.map((item, index) => (
                 <div key={index} style={{ marginBottom: "10px" }}>
                   <p>
-                    <strong>온도:</strong> {item.temperature}°C,{" "}
-                    <strong>습도:</strong> {item.humidity}%,{" "}
-                    <strong>토양 수분:</strong> {item.soilMoisture}%<br />
-                    <strong>수신 시간:</strong>{" "}
-                    {new Date(item.timestamp).toLocaleString()}
+                    <strong>습도:</strong> {item.humidity}% <br />
+                    <strong>시간:</strong> {item.timestamp}
                   </p>
                   <hr />
                 </div>
