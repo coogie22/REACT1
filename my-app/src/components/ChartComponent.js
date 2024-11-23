@@ -22,20 +22,27 @@ function ChartComponent() {
   const chartRef = useRef(null);
   const canvasRef = useRef(null);
   const MAX_VISIBLE_POINTS = 20;
+  const updateFrameRef = useRef(null); // requestAnimationFrame 관리
   const [latestData, setLatestData] = useState(null);
 
   useEffect(() => {
     const ctx = canvasRef.current.getContext("2d");
 
+    // 로컬 스토리지에서 저장된 데이터 불러오기
+    const savedChartData = JSON.parse(localStorage.getItem("chartData")) || {
+      labels: [],
+      data: [],
+    };
+
     // Chart.js 초기화
     const chartInstance = new Chart(ctx, {
       type: "line",
       data: {
-        labels: [],
+        labels: savedChartData.labels,
         datasets: [
           {
             label: "습도 (%)",
-            data: [],
+            data: savedChartData.data,
             borderColor: "rgba(54, 162, 235, 1)",
             backgroundColor: "rgba(54, 162, 235, 0.2)",
             borderWidth: 2,
@@ -47,6 +54,9 @@ function ChartComponent() {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+          mode: "nearest", // 렌더링 최적화를 위해 최소한의 인터랙션 처리
+        },
         scales: {
           x: {
             title: { display: true, text: "시간" },
@@ -81,7 +91,7 @@ function ChartComponent() {
           timestamp: new Date(data.timestamp).toLocaleString(),
         });
 
-        // 차트 업데이트
+        // 차트 데이터 업데이트
         labels.push(timestamp);
         datasets[0].data.push(humidity);
 
@@ -91,14 +101,36 @@ function ChartComponent() {
           datasets[0].data.shift();
         }
 
-        chartRef.current.update();
+        // requestAnimationFrame을 활용한 차트 업데이트
+        if (!updateFrameRef.current) {
+          updateFrameRef.current = requestAnimationFrame(() => {
+            chartRef.current.update();
+            updateFrameRef.current = null;
+          });
+        }
       }
     });
+
+    // 일정 주기로 로컬 스토리지 저장
+    const storageInterval = setInterval(() => {
+      const { labels, datasets } = chartRef.current.data;
+      localStorage.setItem(
+        "chartData",
+        JSON.stringify({
+          labels,
+          data: datasets[0].data,
+        })
+      );
+    }, 5000); // 5초마다 저장
 
     return () => {
       if (chartRef.current) {
         chartRef.current.destroy();
       }
+      if (updateFrameRef.current) {
+        cancelAnimationFrame(updateFrameRef.current);
+      }
+      clearInterval(storageInterval);
     };
   }, []);
 
