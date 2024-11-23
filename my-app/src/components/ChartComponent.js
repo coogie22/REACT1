@@ -41,7 +41,7 @@ function ChartComponent() {
         labels: savedChartData.labels,
         datasets: [
           {
-            label: "습도 (%)",
+            label: "토양 습도 (%)",
             data: savedChartData.data,
             borderColor: "rgba(54, 162, 235, 1)",
             backgroundColor: "rgba(54, 162, 235, 0.2)",
@@ -205,7 +205,7 @@ function ChartComponent() {
             {latestData ? (
               <>
                 <p>
-                  <strong>습도:</strong> {latestData.humidity}%
+                  <strong>토양 습도:</strong> {latestData.humidity}%
                 </p>
                 <p>
                   <strong>수신 시간:</strong> {latestData.timestamp}
