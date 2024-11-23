@@ -22,7 +22,7 @@ function ChartComponent() {
   const chartRef = useRef(null);
   const canvasRef = useRef(null);
   const MAX_VISIBLE_POINTS = 20;
-  const updateFrameRef = useRef(null); // requestAnimationFrame 관리
+  const updateFrameRef = useRef(null);
   const [latestData, setLatestData] = useState(null);
 
   useEffect(() => {
@@ -55,7 +55,7 @@ function ChartComponent() {
         responsive: true,
         maintainAspectRatio: false,
         interaction: {
-          mode: "nearest", // 렌더링 최적화를 위해 최소한의 인터랙션 처리
+          mode: "nearest",
         },
         scales: {
           x: {
@@ -121,7 +121,7 @@ function ChartComponent() {
           data: datasets[0].data,
         })
       );
-    }, 5000); // 5초마다 저장
+    }, 5000);
 
     return () => {
       if (chartRef.current) {
@@ -135,38 +135,102 @@ function ChartComponent() {
   }, []);
 
   return (
-    <div style={{ display: "flex", gap: "20px", padding: "20px" }}>
-      {/* 차트 */}
-      <div style={{ flex: 1 }}>
-        <canvas ref={canvasRef}></canvas>
-      </div>
-
-      {/* 실시간 데이터 */}
-      <div
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+      }}
+    >
+      {/* 컨텐츠 영역 */}
+      <main
         style={{
-          flexBasis: "300px",
+          flex: "1",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
           padding: "20px",
-          border: "1px solid #ddd",
-          borderRadius: "10px",
-          backgroundColor: "#f9f9f9",
         }}
       >
-        <h3 style={{ textAlign: "center", color: "#00529b" }}>실시간 데이터</h3>
-        {latestData ? (
-          <>
-            <p>
-              <strong>습도:</strong> {latestData.humidity}%
-            </p>
-            <p>
-              <strong>수신 시간:</strong> {latestData.timestamp}
-            </p>
-          </>
-        ) : (
-          <p style={{ textAlign: "center", color: "#888" }}>
-            데이터를 로드 중입니다...
-          </p>
-        )}
-      </div>
+        <h1
+          style={{
+            marginBottom: "20px",
+            fontSize: "2.2rem",
+            color: "#2e7d32",
+            textAlign: "center",
+          }}
+        >
+          실시간 데이터 차트
+        </h1>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "20px",
+            width: "100%",
+            maxWidth: "900px",
+            alignItems: "center",
+          }}
+        >
+          {/* 차트 */}
+          <div
+            style={{
+              width: "100%",
+              height: "400px",
+              border: "1px solid #ddd",
+              borderRadius: "10px",
+              overflow: "hidden",
+              backgroundColor: "#fff",
+            }}
+          >
+            <canvas ref={canvasRef} style={{ width: "100%", height: "100%" }}></canvas>
+          </div>
+
+          {/* 실시간 데이터 */}
+          <div
+            style={{
+              padding: "20px",
+              border: "1px solid #ddd",
+              borderRadius: "10px",
+              backgroundColor: "#f9f9f9",
+              width: "100%",
+              maxWidth: "900px",
+              textAlign: "center",
+            }}
+          >
+            <h3 style={{ color: "#00529b", marginBottom: "10px" }}>
+              실시간 데이터
+            </h3>
+            {latestData ? (
+              <>
+                <p>
+                  <strong>습도:</strong> {latestData.humidity}%
+                </p>
+                <p>
+                  <strong>수신 시간:</strong> {latestData.timestamp}
+                </p>
+              </>
+            ) : (
+              <p style={{ color: "#888" }}>데이터를 로드 중입니다...</p>
+            )}
+          </div>
+        </div>
+      </main>
+
+      {/* 푸터 */}
+      <footer
+        style={{
+          backgroundColor: "#2e7d32",
+          color: "#fff",
+          textAlign: "center",
+          padding: "15px",
+          fontSize: "1rem",
+          marginTop: "auto",
+        }}
+      >
+        © 2024 스마트팜 모니터링 시스템. All rights reserved.
+      </footer>
     </div>
   );
 }
