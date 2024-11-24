@@ -4,7 +4,6 @@ import { HashRouter as Router, Routes, Route, Link, Navigate } from 'react-route
 import HomePage from './components/HomePage';
 import AnalysisPage from './components/AnalysisPage';
 import ChartComponent from './components/ChartComponent';
-import Controls from './components/Controls';
 import LoginModal from './components/LoginModal';
 
 function App() {
@@ -53,7 +52,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
 
             {/* 차트 페이지 */}
-            <Route path="/chart" element={<><ChartComponent /><Controls /></>} />
+            <Route path="/chart" element={<ChartComponent />} /> {/* Controls 삭제 */}
 
             {/* 데이터 분석 페이지 */}
             <Route path="/analysis" element={<AnalysisPage />} />
