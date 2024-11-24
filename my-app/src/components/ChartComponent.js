@@ -91,22 +91,24 @@ function ChartComponent() {
           timestamp: new Date(data.timestamp).toLocaleString(),
         });
 
-        // 차트 데이터 업데이트
-        labels.push(timestamp);
-        datasets[0].data.push(humidity);
+        // 중복된 시간대의 데이터는 추가하지 않도록 처리
+        if (!labels.includes(timestamp)) {
+          labels.push(timestamp);
+          datasets[0].data.push(humidity);
 
-        // 데이터 포인트 제한
-        if (labels.length > MAX_VISIBLE_POINTS) {
-          labels.shift();
-          datasets[0].data.shift();
-        }
+          // 데이터 포인트 제한
+          if (labels.length > MAX_VISIBLE_POINTS) {
+            labels.shift();
+            datasets[0].data.shift();
+          }
 
-        // requestAnimationFrame을 활용한 차트 업데이트
-        if (!updateFrameRef.current) {
-          updateFrameRef.current = requestAnimationFrame(() => {
-            chartRef.current.update();
-            updateFrameRef.current = null;
-          });
+          // requestAnimationFrame을 활용한 차트 업데이트
+          if (!updateFrameRef.current) {
+            updateFrameRef.current = requestAnimationFrame(() => {
+              chartRef.current.update();
+              updateFrameRef.current = null;
+            });
+          }
         }
       }
     });
